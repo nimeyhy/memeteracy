@@ -108,6 +108,20 @@ with tab_live:
     vid = visitor_id()
     remaining = max(0, SHARED_LIMIT - shared_used(vid))
 
+    with st.form("search"):
+        c1, c2 = st.columns([3, 1])
+        q = c1.text_input("밈 (변형 표기는 쉼표로 구분)", placeholder="예: 샤갈, 쌰갈")
+        total = c2.selectbox("수집량", [100, 200, 300], index=1)
+        c3, c4, c5 = st.columns([2, 1, 2])
+        sources = c3.multiselect("검색 대상", list(P.SOURCES), default=["blog", "cafearticle"],
+                                 format_func=P.SOURCES.get)
+        sort = c4.radio("정렬", ["sim", "date"], format_func={"sim": "정확도", "date": "최신"}.get)
+        exclude = c5.text_input("제외할 표현 (선택)", placeholder="예: 밤티라미수, 밤티골")
+        go = st.form_submit_button("분석하기", type="primary")
+
+    st.caption("네이버 검색 결과의 미리보기만 수집하며, 본문에 들어가지 않습니다. "
+               "300건 기준 1분 안팎이 걸립니다.")
+
     with st.expander("내 네이버 API 키로 검색하기" + ("" if remaining else " (공용 한도 소진)"),
                      expanded=(remaining == 0)):
         st.markdown(f"""
@@ -124,20 +138,6 @@ with tab_live:
         if use_own:
             st.success("내 키로 검색합니다. 공용 한도가 차감되지 않습니다.")
 
-    with st.form("search"):
-        c1, c2 = st.columns([3, 1])
-        q = c1.text_input("밈 (변형 표기는 쉼표로 구분)", placeholder="예: 샤갈, 쌰갈")
-        total = c2.selectbox("수집량", [100, 200, 300], index=1)
-        c3, c4, c5 = st.columns([2, 1, 2])
-        sources = c3.multiselect("검색 대상", list(P.SOURCES), default=["blog", "cafearticle"],
-                                 format_func=P.SOURCES.get)
-        sort = c4.radio("정렬", ["sim", "date"], format_func={"sim": "정확도", "date": "최신"}.get)
-        exclude = c5.text_input("제외할 표현 (선택)", placeholder="예: 밤티라미수, 밤티골")
-        go = st.form_submit_button("분석하기", type="primary")
-
-    st.caption("네이버 검색 결과의 미리보기만 수집하며, 본문에 들어가지 않습니다. "
-               "300건 기준 1분 안팎이 걸립니다.")
-
     if go:
         variants = [v.strip() for v in q.split(",") if v.strip()]
         excl = [v.strip() for v in exclude.split(",") if v.strip()]
@@ -151,7 +151,7 @@ with tab_live:
             st.warning("검색 대상을 하나 이상 고르세요.")
         elif not use_own and total > remaining:
             st.warning(f"오늘 남은 공용 한도는 {remaining}건입니다. 수집량을 줄이거나, "
-                       "위의 '내 네이버 API 키로 검색하기'에 본인 키를 넣어 주세요.")
+                       "아래 '내 네이버 API 키로 검색하기'에 본인 키를 넣어 주세요.")
         elif not (cid and sec):
             st.error("서버에 네이버 API 키가 설정되지 않았습니다. 본인 키를 넣어 검색해 주세요.")
         else:
@@ -311,22 +311,25 @@ with tab_study:
             if not b:
                 st.info("브래드포드 분석 결과를 준비 중입니다.")
             else:
-                st.markdown("세부 플랫폼(블로그 주제, 디시 갤러리, 유튜브 카테고리, X 작성자 소개글 군집)을 **출처**로, "
-                            "밈이 쓰인 글을 **항목**으로 보고 브래드포드 법칙을 적용했습니다. 글 수가 많은 순으로 출처를 "
-                            "정렬해 글 수가 1/3씩 되도록 세 구역으로 나누고, 구역별 출처 수가 1 : k : k²에 가까운지 봅니다.")
-                st.dataframe(pd.DataFrame(b["compare"]), hide_index=True, width="stretch")
-                st.caption("지니계수가 1에 가까울수록 소수의 출처에 집중. 플랫폼마다 출처를 나눈 단위가 달라 "
-                           "(디시는 갤러리 수백 개, 나머지는 13~32개) 플랫폼 간 수치를 직접 비교하기는 어렵습니다. "
-                           "모든 플랫폼에서 같은 양을 수집했으므로 비율은 실제 사용량이 아니라 표본 안의 분포입니다.")
                 scope = st.radio("범위", list(b["scopes"]), horizontal=True, key=f"bs_{pick}")
                 s_ = b["scopes"][scope]
-                if s_.get("zones"):
-                    st.dataframe(pd.DataFrame(s_["zones"]), hide_index=True, width="stretch")
                 g1, g2 = st.columns(2)
                 if s_.get("curve"):
                     show_image(g1, s_["curve"], caption="브래드포드 곡선")
                 if s_.get("zone_img"):
                     show_image(g2, s_["zone_img"], caption="구역표")
+                if s_.get("zones"):
+                    st.markdown(f"**{scope} · 구역별 출처**")
+                    st.dataframe(pd.DataFrame(s_["zones"]), hide_index=True, width="stretch")
+                st.divider()
+                st.markdown("**범위별 비교**")
+                st.dataframe(pd.DataFrame(b["compare"]), hide_index=True, width="stretch")
+                st.markdown("세부 플랫폼(블로그 주제, 디시 갤러리, 유튜브 카테고리, X 작성자 소개글 군집)을 **출처**로, "
+                            "밈이 쓰인 글을 **항목**으로 보고 브래드포드 법칙을 적용했습니다. 글 수가 많은 순으로 출처를 "
+                            "정렬해 글 수가 1/3씩 되도록 세 구역으로 나누고, 구역별 출처 수가 1 : k : k²에 가까운지 봅니다.")
+                st.caption("지니계수가 1에 가까울수록 소수의 출처에 집중. 플랫폼마다 출처를 나눈 단위가 달라 "
+                           "(디시는 갤러리 수백 개, 나머지는 13~32개) 플랫폼 간 수치를 직접 비교하기는 어렵습니다. "
+                           "모든 플랫폼에서 같은 양을 수집했으므로 비율은 실제 사용량이 아니라 표본 안의 분포입니다.")
 
 # ------------------------------------------------------------------ 소개
 with tab_about:
