@@ -1,0 +1,12 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+sentence-transformers
+streamlit
+pandas
+numpy
+scipy
+scikit-learn>=1.3
+umap-learn
+kiwipiepy
+plotly
+requests
