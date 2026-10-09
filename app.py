@@ -237,6 +237,15 @@ with tab_live:
 - 1·3만 충족한 군집은 범용 군집으로 분류
 """)
 
+def show_image(target, rel, **kw):
+    """그림이 없으면 오류 대신 안내만 표시한다."""
+    fp = Path(__file__).parent / "data" / rel
+    if fp.exists():
+        target.image(str(fp), **kw)
+    else:
+        target.caption(f"(그림 파일 없음: data/{rel})")
+
+
 # ------------------------------------------------------------------ 연구 결과
 with tab_study:
     DATA = Path(__file__).parent / "data"
@@ -283,7 +292,7 @@ with tab_study:
                             st.markdown(f"<div class='doc'>{html.escape(t)}</div>", unsafe_allow_html=True)
             if m["images"].get("map"):
                 with st.expander("전체 군집 지도 (UMAP 2차원)"):
-                    st.image(str(DATA / m["images"]["map"]))
+                    show_image(st, m["images"]["map"])
         with sub_p:
             if m.get("platform_test"):
                 t = m["platform_test"]
@@ -293,7 +302,7 @@ with tab_study:
                 x3.metric("Cramér's V", f"{float(t['크래머 V']):.3f}")
             for key in ["compare", "heatmap"]:
                 if m["images"].get(key):
-                    st.image(str(DATA / m["images"][key]))
+                    show_image(st, m["images"][key])
             if m.get("platform_text"):
                 with st.expander("분석 결과문"):
                     st.text(m["platform_text"])
@@ -315,9 +324,9 @@ with tab_study:
                     st.dataframe(pd.DataFrame(s_["zones"]), hide_index=True, width="stretch")
                 g1, g2 = st.columns(2)
                 if s_.get("curve"):
-                    g1.image(str(DATA / s_["curve"]), caption="브래드포드 곡선")
+                    show_image(g1, s_["curve"], caption="브래드포드 곡선")
                 if s_.get("zone_img"):
-                    g2.image(str(DATA / s_["zone_img"]), caption="구역표")
+                    show_image(g2, s_["zone_img"], caption="구역표")
 
 # ------------------------------------------------------------------ 소개
 with tab_about:
